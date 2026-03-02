@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear App Storage</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #c0392b;
+    }
+    button.success {
+      background: #27ae60;
+    }
+    button.success:hover {
+      background: #229954;
+    }
+    .info {
+      background: #ecf0f1;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #2c3e50;
+      line-height: 1.6;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .status.success {
+      background: #d5f4e6;
+      color: #27ae60;
+    }
+    .status.error {
+      background: #fadbd8;
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Clear App Storage</h1>
+    
+    <div class="info">
+      <strong>Note:</strong> This will clear all local storage, session storage, and cached data for this domain. 
+      You will need to log in again after clearing.
+    </div>
+
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <button class="success" onclick="checkStorage()">Check Storage</button>
+    
+    <div id="status"></div>
+  </div>
+
+  <script>
+    function clearStorage() {
+      try {
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        
+        // Clear cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        // Clear IndexedDB databases
+        if (window.indexedDB) {
+          indexedDB.databases().then(databases => {
+            databases.forEach(db => {
+              if (db.name) {
+                indexedDB.deleteDatabase(db.name);
+              }
+            });
+          }).catch(err => {
+            console.log('Could not list IndexedDB databases:', err);
+          });
+        }
+        
+        showStatus('Storage cleared successfully! Please refresh the app and log in again.', 'success');
+      } catch (error) {
+        showStatus('Error clearing storage: ' + error.message, 'error');
+      }
+    }
+
+    function checkStorage() {
+      const localKeys = Object.keys(localStorage);
+      const sessionKeys = Object.keys(sessionStorage);
+      const hasSupabaseData = localKeys.some(k => k.includes('supabase')) || sessionKeys.some(k => k.includes('supabase'));
+      
+      let message = `LocalStorage: ${localKeys.length} items<br>`;
+      message += `SessionStorage: ${sessionKeys.length} items<br>`;
+      message += `Supabase data detected: ${hasSupabaseData ? 'Yes' : 'No'}<br><br>`;
+      
+      if (localKeys.length > 0) {
+        message += '<strong>LocalStorage keys:</strong><br>';
+        localKeys.slice(0, 10).forEach(key => {
+          message += `- ${key}<br>`;
+        });
+        if (localKeys.length > 10) {
+          message += `... and ${localKeys.length - 10} more`;
+        }
+      }
+      
+      showStatus(message, hasSupabaseData ? 'error' : 'success');
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = 'status ' + type;
+      statusDiv.innerHTML = message;
+    }
+
+    // Check storage on load
+    window.onload = checkStorage;
+  </script>
+</body>
+</html>

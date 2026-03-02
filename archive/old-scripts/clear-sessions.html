@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Supabase Session</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #bee5eb;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear Supabase Session</h1>
+        
+        <div class="info">
+            <strong>Why this is needed:</strong><br>
+            Your browser cached an old session with user ID <code>1bb21e54-5800-48c7-8e64-cba21220c588</code> which no longer exists in the database. The new test user has ID <code>00000000-0000-0000-0000-000000000001</code>.
+        </div>
+
+        <div class="step">
+            <strong>Step 1:</strong> Click the button below to clear all stored session data
+        </div>
+        
+        <button onclick="clearAllStorage()">Clear All Session Data</button>
+        
+        <div id="status"></div>
+
+        <div class="step">
+            <strong>Step 2:</strong> After clearing, click to go back to your app
+        </div>
+        
+        <button onclick="goToApp()">Go to App (localhost:8081)</button>
+
+        <div class="step">
+            <strong>Step 3:</strong> Log in with:
+            <ul>
+                <li>Email: <code>test@example.com</code></li>
+                <li>Password: <code>password123</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function clearAllStorage() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                // Clear localStorage
+                const localStorageKeys = Object.keys(localStorage);
+                console.log('LocalStorage keys before:', localStorageKeys);
+                localStorage.clear();
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                
+                // Clear IndexedDB (used by AsyncStorage in web)
+                if (window.indexedDB) {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            console.log('Deleting database:', db.name);
+                            indexedDB.deleteDatabase(db.name);
+                        });
+                    });
+                }
+                
+                // Clear cookies for localhost:8081
+                document.cookie.split(";").forEach(function(c) {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+                
+                statusDiv.innerHTML = '<div class="success">✅ Successfully cleared all session data!<br><br>Cleared:<br>• LocalStorage<br>• SessionStorage<br>• IndexedDB<br>• Cookies<br><br><strong>Now click "Go to App" and log in fresh.</strong></div>';
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function goToApp() {
+            window.location.href = 'http://localhost:8081';
+        }
+
+        // Show what's currently stored
+        window.onload = function() {
+            const keys = Object.keys(localStorage);
+            if (keys.length > 0) {
+                console.log('Found cached data:', keys);
+                const supabaseKeys = keys.filter(k => k.includes('supabase') || k.includes('sb-'));
+                if (supabaseKeys.length > 0) {
+                    console.log('Supabase-related keys:', supabaseKeys);
+                    supabaseKeys.forEach(key => {
+                        console.log(key, '=', localStorage.getItem(key)?.substring(0, 100));
+                    });
+                }
+            }
+        };
+    </script>
+</body>
+</html>
